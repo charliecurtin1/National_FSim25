@@ -6,6 +6,13 @@ __pycache__/
 # C extensions
 *.so
 
+# ArcGIS project files
+IDG_explore.aprx
+IDG_explore.atbx
+IDG_explore.gdb/
+ImportLog/
+Index/
+
 # Distribution / packaging
 .Python
 build/
