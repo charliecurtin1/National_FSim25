@@ -1,0 +1,71 @@
+---
+title: "Calculating the large-fire size threshold"
+output: html_document
+---
+
+Testing the Lorenz curve process in R
+```{r, message = FALSE}
+# import packages
+library(sf)
+library(tidyverse)
+library(ineq)
+```
+
+```{r}
+## read in data sources
+# fire occurrence
+fod_gdb <- "C:/Users/Charlie/Desktop/ArcGIS/data/NatFSim/NatFSim2022/fire_occurrence/FPA_FOD_20221014.gdb"
+fires <- st_read(dsn = fod_gdb, layer = "Fires", quiet = TRUE)
+
+# pyromes
+pyrome_boundaries <- st_read("C:/Users/Charlie/Desktop/ArcGIS/data/WCS_OPM_FY24/0_AnalysisArea/Pyromes/Pyromes_CONUS_20200206.shp")
+```
+```{r}
+## exploring data
+# check the data types of columns
+glimpse(pyrome_boundaries)
+```
+
+```{r}
+## calculating the large fire size for a single pyrome
+# isolate pyrome 17
+py17 <- pyrome_boundaries %>% 
+  filter(PYROME == 17) %>% 
+  st_transform(st_crs(fires))
+
+# spatial subset fires that intersect with the pyrome
+py17_fires <- fires[py17, ] %>% 
+  select(FIRE_SIZE, FOD_ID)
+#py_fires_alt = st_intersection(fires, py17) # st_intersection returns the same result
+
+# quick plot
+plot(st_geometry(py17), border = "black", lwd = 2)
+plot(st_geometry(py17_fires), 
+     col = adjustcolor("red", alpha.f = 0.4), 
+     border = NA, add = TRUE)
+
+# calculate cumulative area, fires, and percentages of each
+py17_fires <- py17_fires %>% 
+  st_drop_geometry() %>% 
+  arrange(FIRE_SIZE) %>% 
+  mutate(
+    cum_fires = row_number() / n(),
+    cum_fires_per = cum_fires * 100,
+    cum_area = cumsum(FIRE_SIZE) / sum(FIRE_SIZE),
+    cum_area_per = cum_area * 100
+  )
+
+
+
+# plot the lorenz curve
+ggplot(py17_fires, aes(x = cum_fires_per, y = cum_area_per)) +
+  geom_line(color = "blue", linewidth = 1.2) +
+  geom_abline(slope = 1, intercept = 0, linetype = "dashed", color = "gray50") +
+  labs(
+    title = "Lorenz Curve of Burned Area by Fire Count",
+    x = "Cumulative % of Fires",
+    y = "Cumulative % of Area Burned"
+  ) +
+  theme_minimal()
+```
+
