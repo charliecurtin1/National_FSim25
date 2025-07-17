@@ -12,6 +12,7 @@ IDG_explore.atbx
 IDG_explore.gdb/
 ImportLog/
 Index/
+data/
 
 # Distribution / packaging
 .Python
