@@ -12,6 +12,7 @@ library(tidyverse)
 library(readxl)
 ```
 
+
 ```{r, message = FALSE}
 ## read in data sources
 # fire occurrence
@@ -26,11 +27,16 @@ pyrome_boundaries <- st_read("C:/Users/Charlie/Desktop/ArcGIS/data/WCS_OPM_FY24/
 ref_df_xl <- read_excel("C:/Users/Charlie/Desktop/FSim_IDG/data/National_HistoricalData_min90ac.xlsx", col_names = FALSE)
 ```
 
-
+### cleaning and wrangling
 ```{r}
 ## exploring data
 # check the data types of columns
 glimpse(pyrome_boundaries)
+
+# filter for fires between 2006-2020
+fires_2006 <- fires %>% 
+  filter(FIRE_YEAR > 2005)
+
 
 ## wrangling
 # # transpose dataframes
@@ -44,7 +50,7 @@ glimpse(pyrome_boundaries)
 # # assign the column names
 # colnames(ref_df) <- new_colnames
 # 
-# # Optional: add PyromeID (from original colnames)
+# # ptional: add PyromeID (from original colnames)
 # ref_df <- ref_df %>%
 #   mutate(PyromeID = as.integer(rownames(.))) %>%
 #   relocate(PyromeID)
@@ -113,10 +119,10 @@ find_min_fire_row <- function(pyrome){
   # select pyrome
   py <- pyrome_boundaries %>% 
   filter(PYROME == pyrome) %>% 
-  st_transform(st_crs(fires))
+  st_transform(st_crs(fires_2006))
   
   # spatial subset fires that intersect with the pyrome
-  py_fires <- fires[py, ] %>% 
+  py_fires <- fires_2006[py, ] %>% 
   select(FIRE_SIZE, FOD_ID)
   
   # calculate cumulative area, fires, and percentages of each
@@ -153,7 +159,8 @@ find_min_fire_row <- function(pyrome){
 ### Looping through all pyromes and calculating the minimum fire size
 ```{r}
 # unique pyrome IDs
-pyrome_ids <- unique(pyrome_boundaries$PYROME)
+# pyrome_ids <- unique(pyrome_boundaries$PYROME)
+pyrome_ids <- seq(1:10)
 
 # apply the function to all pyromes
 rows <- lapply(pyrome_ids, function(id) {
@@ -168,13 +175,15 @@ rows <- lapply(pyrome_ids, function(id) {
   )
 })
 
+# # combine into a dataframe
+# fire_thresholds_df <- do.call(rbind, rows) %>% 
+#   relocate(pyrome) %>% 
+#   select(-(FOD_ID))
+
 # combine into a dataframe
-fire_thresholds_df <- do.call(rbind, rows) %>% 
-  relocate(pyrome) %>% 
+fire_thresholds_df_2006 <- do.call(rbind, rows) %>%
+  relocate(pyrome) %>%
   select(-(FOD_ID))
-
-
-  
 ```
 
 The final result we extract for each pyrome is the fire size. This is a threshold above which fires are considered "large fires". The percentage of cumulative fires and cumulative area can be interpreted as 
